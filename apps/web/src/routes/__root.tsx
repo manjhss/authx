@@ -1,6 +1,7 @@
 import { HeadContent, Scripts, createRootRoute } from "@tanstack/react-router"
 
-import appCss from "@workspace/ui/globals.css?url"
+import "@workspace/ui/styles/globals.css"
+import { ThemeProvider } from "@workspace/ui/theme-provider"
 
 export const Route = createRootRoute({
   head: () => ({
@@ -13,13 +14,7 @@ export const Route = createRootRoute({
         content: "width=device-width, initial-scale=1",
       },
       {
-        title: "TanStack Start Starter",
-      },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
+        title: "authx",
       },
     ],
   }),
@@ -33,7 +28,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        {children}
+        <ThemeProvider defaultTheme="system" storageKey="authx-ui-theme">
+          {children}
+        </ThemeProvider>
         <Scripts />
       </body>
     </html>
