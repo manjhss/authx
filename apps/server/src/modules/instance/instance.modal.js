@@ -4,11 +4,11 @@ const instanceSchema = new mongoose.Schema(
   {
     type: {
       type: String,
-      enum: ["system", "dev", "prod"],
+      enum: ["dev", "prod"],
       required: [true, "Instance type is required"],
     },
     app_id: {
-      type: mongoose.Schema.Types.ObjectId || null,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "apps",
       required: [true, "App ID is required"],
     },
