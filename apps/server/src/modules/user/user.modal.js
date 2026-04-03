@@ -20,9 +20,9 @@ const userSchema = new mongoose.Schema(
       required: [true, "Password is required"],
     },
     instance_id: {
-      type: mongoose.Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.Mixed, // can be ObjectId or string
       ref: "instances",
-			required: [true, "Instance ID is required"],
+      required: [true, "Instance ID is required"],
     },
   },
   {
