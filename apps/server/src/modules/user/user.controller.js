@@ -214,4 +214,42 @@ const refreshToken = async (req, res) => {
   }
 }
 
-export { registerUser, loginUser, getMe, refreshToken }
+const logoutUser = async (req, res) => {
+  try {
+    // parse refresh token from cookies
+    const refreshToken = req.cookies.refreshToken
+    if (!refreshToken) {
+      return res.status(401).json({ message: "Refresh token missing" })
+    }
+
+    // hash the refresh token
+    const refreshTokenHash = crypto
+      .createHash("sha256")
+      .update(refreshToken)
+      .digest("hex")
+
+    // find the session with valid refresh token hash and not revoked
+    const session = await sessionModel.findOne({
+      refresh_token_hash: refreshTokenHash,
+      is_revoked: false,
+    })
+
+    if (!session) {
+      return res.status(401).json({ message: "Invalid refresh token" })
+    }
+
+    // revoke the session
+    session.is_revoked = true
+    await session.save()
+
+    // clear the refresh token cookie
+    res.clearCookie("refreshToken")
+
+    res.status(200).json({ message: "User logged out successfully" })
+  } catch (error) {
+    res.status(500).json({ message: "Error logging out user" })
+    console.log("error", error.message)
+  }
+}
+
+export { registerUser, loginUser, getMe, refreshToken, logoutUser }
