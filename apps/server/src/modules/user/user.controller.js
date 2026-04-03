@@ -87,4 +87,35 @@ const loginUser = async (req, res) => {
   }
 }
 
-export { registerUser, loginUser }
+const getCurrentUser = async (req, res) => {
+  try {
+    // parse access token from request header
+    const accessToken = req.headers.authorization?.split(" ")[1]
+    if (!accessToken) {
+      return res.status(401).json({ message: "Access token missing" })
+    }
+
+    // decode the access token
+    const decoded = jwt.verify(accessToken, config.jwtSecret)
+
+    // find the user by id
+    const user = await userModel.findById(decoded.userId)
+    if (!user) {
+      return res.status(404).json({ message: "User not found" })
+    }
+
+    res.status(200).json({
+      message: "Current user fetched successfully",
+      user: {
+        firstName: user.first_name,
+        lastName: user.last_name,
+        email: user.email,
+      },
+    })
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching current user" })
+    console.log("error", error.message)
+  }
+}
+
+export { registerUser, loginUser, getCurrentUser }
