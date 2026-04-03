@@ -252,4 +252,42 @@ const logoutUser = async (req, res) => {
   }
 }
 
-export { registerUser, loginUser, getMe, refreshToken, logoutUser }
+const logoutUserAllSessions = async (req, res) => {
+  try {
+    // parse refresh token from cookies
+    const refreshToken = req.cookies.refreshToken
+    if (!refreshToken) {
+      return res.status(401).json({ message: "Refresh token missing" })
+    }
+
+    // decode the refresh token
+    const decoded = jwt.verify(refreshToken, config.jwtSecret)
+
+    // revoke all sessions for the user
+    await sessionModel.updateMany(
+      { user_id: decoded.userId },
+      { $set: { is_revoked: true } }
+    )
+
+    // clear the refresh token cookie
+    res.clearCookie("refreshToken")
+
+    res
+      .status(200)
+      .json({ message: "User logged out from all sessions successfully" })
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: "Error logging out user from all sessions" })
+    console.log("error", error.message)
+  }
+}
+
+export {
+  registerUser,
+  loginUser,
+  getMe,
+  refreshToken,
+  logoutUser,
+  logoutUserAllSessions,
+}
