@@ -6,7 +6,8 @@ const config = {
   systemInstanceId: process.env.SYSTEM_INSTANCE_ID,
   environment: process.env.ENVIRONMENT,
   jwtSecret: process.env.JWT_SECRET,
-  jwtExpiration: process.env.JWT_EXPIRATION || "15m",
+  jwtAccessTokenExpiration: process.env.JWT_ACCESS_TOKEN_EXPIRATION || "15m",
+  jwtRefreshTokenExpiration: process.env.JWT_REFRESH_TOKEN_EXPIRATION || "7d",
 }
 
 export default config

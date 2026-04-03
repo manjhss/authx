@@ -1,5 +1,6 @@
 import config from "../../common/config/config.js"
 import { userModel } from "./user.modal.js"
+import { sessionModel } from "../session/session.modal.js"
 import crypto from "crypto"
 import jwt from "jsonwebtoken"
 
@@ -63,15 +64,42 @@ const loginUser = async (req, res) => {
       return res.status(400).json({ message: "Invalid email or password" })
     }
 
-    // generate a JWT access token
-    const token = jwt.sign(
+    // generate a JWT refresh token
+    const refreshToken = jwt.sign(
       {
         userId: existingUser._id,
-        email: existingUser.email,
       },
       config.jwtSecret,
-      { expiresIn: config.jwtExpiration }
+      { expiresIn: config.jwtRefreshTokenExpiration }
     )
+
+    const refreshTokenHash = crypto
+      .createHash("sha256")
+      .update(refreshToken)
+      .digest("hex")
+
+    // create session in db
+    await sessionModel.create({
+      user_id: existingUser._id,
+      refresh_token_hash: refreshTokenHash,
+    })
+
+    // generate a JWT access token
+    const accessToken = jwt.sign(
+      {
+        userId: existingUser._id,
+      },
+      config.jwtSecret,
+      { expiresIn: config.jwtAccessTokenExpiration }
+    )
+
+    // set refresh token in cookie
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    })
 
     // return success response with user data or error message
     res.status(200).json({
@@ -79,7 +107,7 @@ const loginUser = async (req, res) => {
       user: {
         email: existingUser.email,
       },
-      token,
+      token: accessToken,
     })
   } catch (error) {
     res.status(500).json({ message: "Error logging in user" })
@@ -87,7 +115,7 @@ const loginUser = async (req, res) => {
   }
 }
 
-const getCurrentUser = async (req, res) => {
+const getMe = async (req, res) => {
   try {
     // parse access token from request header
     const accessToken = req.headers.authorization?.split(" ")[1]
@@ -118,4 +146,72 @@ const getCurrentUser = async (req, res) => {
   }
 }
 
-export { registerUser, loginUser, getCurrentUser }
+const refreshToken = async (req, res) => {
+  try {
+    // parse refresh token from cookies
+    const refreshToken = req.cookies.refreshToken
+    if (!refreshToken) {
+      return res.status(401).json({ message: "Refresh token missing" })
+    }
+
+    const refreshTokenHash = crypto
+      .createHash("sha256")
+      .update(refreshToken)
+      .digest("hex")
+
+    // find the session with valid refresh token hash and not revoked
+    const session = await sessionModel.findOne({
+      refresh_token_hash: refreshTokenHash,
+      is_revoked: false,
+    })
+
+    if (!session) {
+      return res.status(401).json({ message: "Invalid refresh token" })
+    }
+
+    // generate new access token and refresh token
+    const decoded = jwt.verify(refreshToken, config.jwtSecret)
+
+    const newAccessToken = jwt.sign(
+      {
+        userId: decoded._id,
+      },
+      config.jwtSecret,
+      { expiresIn: config.jwtAccessTokenExpiration }
+    )
+
+    const newRefreshToken = jwt.sign(
+      {
+        userId: decoded._id,
+      },
+      config.jwtSecret,
+      { expiresIn: config.jwtRefreshTokenExpiration }
+    )
+
+    const newRefreshTokenHash = crypto
+      .createHash("sha256")
+      .update(newRefreshToken)
+      .digest("hex")
+
+    // update session with new refresh token hash
+    session.refresh_token_hash = newRefreshTokenHash
+    await session.save()
+
+    res.cookie("refreshToken", newRefreshToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    })
+
+    res.status(200).json({
+      message: "Token refreshed successfully",
+      token: newAccessToken,
+    })
+  } catch (error) {
+    res.status(500).json({ message: "Error refreshing token" })
+    console.log("error", error.message)
+  }
+}
+
+export { registerUser, loginUser, getMe, refreshToken }
