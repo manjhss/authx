@@ -11,10 +11,6 @@ const sessionSchema = new mongoose.Schema(
       type: String,
       required: [true, "Refresh token hash is required"],
     },
-    expires_at: {
-      type: Date,
-      required: [true, "Expiration date is required"],
-    },
     is_revoked: {
       type: Boolean,
       default: false,
