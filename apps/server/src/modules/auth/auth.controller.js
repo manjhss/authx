@@ -1,6 +1,6 @@
 import config from "../../common/config/config.js"
 import { userModel } from "./user.modal.js"
-import { sessionModel } from "../session/session.modal.js"
+import { sessionModel } from "./session.modal.js"
 import { asyncHandler } from "../../common/utils/async-handler.js"
 import crypto from "crypto"
 import jwt from "jsonwebtoken"
